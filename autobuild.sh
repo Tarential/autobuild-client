@@ -1,17 +1,72 @@
-#!/bin/sh
+#!/bin/bash
 
-# Target directories without trailing slashes
+# Target directories without trailing slashes.
 input_directory='/home/tarential/voltar-ui';
 output_directory='/home/tarential/voltar-ui/compiled';
+# Manifest file path is relative to output_directory.
+stylesheet_manifest_file='/stylesheets/application.css';
+javascript_manifest_file='/javascripts/application.js';
+
+# Do you need a certain load order for your js files? Specify here with relative paths:
+loadjs=(
+[0]='/javascripts/vendor/jquery-1.9.1.js'
+[1]='/javascripts/vendor/geturlvars.js'
+[2]='/javascripts/vendor/angular-1.1.2.js'
+[3]='/javascripts/vendor/angular-resource-1.1.2.js'
+[4]='/javascripts/vendor/angular-sanitize-1.1.2.js'
+[5]='/javascripts/vendor/raphael.js'
+[6]='/javascripts/vendor/g.raphael.js'
+[7]='/javascripts/vendor/g.bar.js'
+);
 
 # Escaped version of the input directory is used to strip it from matches.
 escaped_input_directory=$(echo $input_directory | sed 's/\//\\\//g');
+
+# Clear the manifest files.
+ss_mf=$output_directory$stylesheet_manifest_file;
+js_mf=$output_directory$javascript_manifest_file;
+echo '' > $ss_mf;
+echo '' > $js_mf;
+
+in_array() {
+  local val;
+  for val in "${@:2}"; do [[ "$val" == "$1" ]] && return 0; done
+  return 1;
+}
+
+concat_scripts() {
+  concatenated_scripts=([0]='/javascripts/application.js');
+  for input_file in "${loadjs[@]}"; do
+    if [ ! $(in_array "$input_file" "${concatenated_scripts[@]}") ]; then
+      input_file=$input_directory$input_file
+      concatenated_scripts=(${concatenated_scripts[@]} $input_file)
+      echo "Adding $input_file to js manifest.";
+    fi
+  done
+
+  for input_file in $(find $input_directory -name "*.js"); do
+    if [ ! $(in_array "$input_file" "${concatenated_scripts[@]}") ]; then
+      concatenated_scripts=(${concatenated_scripts[@]} $input_file)
+      echo "Adding $input_file to js manifest.";
+      cat $input_file >> $js_mf;
+    fi
+  done
+
+  for input_file in $(find $output_directory -name "*.js"); do
+    if [ ! $(in_array "$input_file" "${concatenated_scripts[@]}") ]; then
+      concatenated_scripts=(${concatenated_scripts[@]} $input_file)
+      echo "Adding $input_file to js manifest.";
+      cat $input_file >> $js_mf;
+    fi
+  done
+}
 
 # Start by compiling any files which have been modified since last time the script was run.
 for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholename '*.sass-cache*' -name "*.*.*"); do
   input_format=$(echo $input_file | sed 's/^.*\.\([^\.]*\)$/\1/');
   output_file=`echo $input_file | sed 's/^.*\/\([^\/]*\)\.'$input_format'/\1/'`;
-  output_dir=$output_directory`echo $input_file | sed 's/'$escaped_input_directory'\/\(.*\)\/'$output_file'.*/\/\1/'`;
+  output_subpath=`echo $input_file | sed 's/'$escaped_input_directory'\/\(.*\)\/'$output_file'.*/\/\1/'`;
+  output_dir=$output_directory$output_subpath;
   output_path=$output_dir'/'$output_file;
 
   if [ ! -d "$output_dir" ]; then
@@ -42,7 +97,15 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
       sass $input_file $output_path;
     fi
   fi
+
+  if [ $input_format = "scss" ]; then
+    echo "Adding $output_subpath/$output_file to stylesheet development manifest.";
+    echo "@import '"$output_subpath"/"$output_file"';" >> $output_directory"/"$stylesheet_manifest_file;
+  fi
 done
+
+# Then concatenate all the scripts for easy include
+concat_scripts;
 
 echo "AutoBuild is now watching $input_directory for changes.";
 
