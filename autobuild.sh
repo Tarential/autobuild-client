@@ -9,14 +9,16 @@ javascript_manifest_file='/javascripts/application.js';
 
 # Do you need a certain load order for your js files? Specify here with relative paths:
 loadjs=(
-[0]='/javascripts/vendor/jquery-1.9.1.js'
-[1]='/javascripts/vendor/geturlvars.js'
-[2]='/javascripts/vendor/angular-1.1.2.js'
-[3]='/javascripts/vendor/angular-resource-1.1.2.js'
-[4]='/javascripts/vendor/angular-sanitize-1.1.2.js'
-[5]='/javascripts/vendor/raphael.js'
-[6]='/javascripts/vendor/g.raphael.js'
-[7]='/javascripts/vendor/g.bar.js'
+[0]=$input_directory'/javascripts/vendor/jquery-1.9.1.js'
+[1]=$input_directory'/javascripts/vendor/jquery-ui-1.10.1.js'
+[2]=$input_directory'/javascripts/vendor/geturlvars.js'
+[3]=$input_directory'/javascripts/vendor/angular-1.1.2.js'
+[4]=$input_directory'/javascripts/vendor/angular-resource-1.1.2.js'
+[5]=$input_directory'/javascripts/vendor/angular-sanitize-1.1.2.js'
+[6]=$input_directory'/javascripts/vendor/raphael.js'
+[7]=$input_directory'/javascripts/vendor/g.raphael.js'
+[8]=$input_directory'/javascripts/vendor/g.bar.js'
+[9]=$output_directory'/javascripts/app.js'
 );
 
 # Escaped version of the input directory is used to strip it from matches.
@@ -35,28 +37,32 @@ in_array() {
 }
 
 concat_scripts() {
-  concatenated_scripts=([0]='/javascripts/application.js');
+  concatenated_scripts=([0]=$output_directory'/javascripts/application.js');
   for input_file in "${loadjs[@]}"; do
-    if [ ! $(in_array "$input_file" "${concatenated_scripts[@]}") ]; then
-      input_file=$input_directory$input_file
-      concatenated_scripts=(${concatenated_scripts[@]} $input_file)
-      echo "Adding $input_file to js manifest.";
+    if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
+      concatenated_scripts=(${concatenated_scripts[@]} "$input_file");
+      echo "Prioritizing addition of $input_file to js manifest.";
+      cat $input_file >> $js_mf;
+      echo "" >> $js_mf;
     fi
   done
 
   for input_file in $(find $input_directory -name "*.js"); do
-    if [ ! $(in_array "$input_file" "${concatenated_scripts[@]}") ]; then
-      concatenated_scripts=(${concatenated_scripts[@]} $input_file)
+    #echo "Testing $input_file";
+    if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
+      concatenated_scripts=(${concatenated_scripts[@]} $input_file);
       echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
+      echo "" >> $js_mf;
     fi
   done
 
   for input_file in $(find $output_directory -name "*.js"); do
-    if [ ! $(in_array "$input_file" "${concatenated_scripts[@]}") ]; then
-      concatenated_scripts=(${concatenated_scripts[@]} $input_file)
+    if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
+      concatenated_scripts=(${concatenated_scripts[@]} $input_file);
       echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
+      echo "" >> $js_mf;
     fi
   done
 }
@@ -99,7 +105,7 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
   fi
 
   if [ $input_format = "scss" ]; then
-    echo "Adding $output_subpath/$output_file to stylesheet development manifest.";
+    #echo "Adding $output_subpath/$output_file to stylesheet development manifest.";
     echo "@import '"$output_subpath"/"$output_file"';" >> $output_directory"/"$stylesheet_manifest_file;
   fi
 done
