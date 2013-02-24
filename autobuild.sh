@@ -28,7 +28,6 @@ escaped_input_directory=$(echo $input_directory | sed 's/\//\\\//g');
 ss_mf=$output_directory$stylesheet_manifest_file;
 js_mf=$output_directory$javascript_manifest_file;
 echo '' > $ss_mf;
-echo '' > $js_mf;
 
 in_array() {
   local val;
@@ -37,21 +36,21 @@ in_array() {
 }
 
 concat_scripts() {
+  echo '' > $js_mf;
   concatenated_scripts=([0]=$output_directory'/javascripts/application.js');
   for input_file in "${loadjs[@]}"; do
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} "$input_file");
-      echo "Prioritizing addition of $input_file to js manifest.";
+      #echo "Prioritizing addition of $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
   done
 
   for input_file in $(find $input_directory -name "*.js"); do
-    #echo "Testing $input_file";
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} $input_file);
-      echo "Adding $input_file to js manifest.";
+      #echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
@@ -60,7 +59,7 @@ concat_scripts() {
   for input_file in $(find $output_directory -name "*.js"); do
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} $input_file);
-      echo "Adding $input_file to js manifest.";
+      #echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
@@ -132,6 +131,7 @@ while inp=$(inotifywait -qre MODIFY $input_directory); do
   if [ $file_format = "coffee" ]; then
     echo "Coffing "$input_file" to "$output_path;
     coffee --compile -p $input_file > $output_path;
+    concat_scripts;
   fi
 
   if [ $file_format = "scss" ]; then
