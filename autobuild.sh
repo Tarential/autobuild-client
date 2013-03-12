@@ -103,7 +103,7 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
 
   if [ $input_format = "scss" ]; then
     #echo "Adding $output_subpath/$output_file to stylesheet development manifest.";
-    echo "@import '"$output_subpath"/"$output_file"';" >> $output_directory"/"$stylesheet_manifest_file;
+    echo "@import '"$output_subpath""$output_file"';" >> $output_directory"/"$stylesheet_manifest_file;
   fi
 done
 
