@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Target directories without trailing slashes.
-input_directory='/home/tarential/voltar-ui';
+input_directory='/home/tarential/voltar-ui/source';
 output_directory='/home/tarential/voltar-ui/compiled';
 # Manifest file path is relative to output_directory.
 stylesheet_manifest_file='/stylesheets/application.css';
@@ -10,15 +10,13 @@ javascript_manifest_file='/javascripts/application.js';
 # Do you need a certain load order for your js files? Specify here with relative paths:
 loadjs=(
 [0]=$input_directory'/javascripts/vendor/jquery-1.9.1.js'
-[1]=$input_directory'/javascripts/vendor/jquery-ui-1.10.1.js'
-[2]=$input_directory'/javascripts/vendor/geturlvars.js'
-[3]=$input_directory'/javascripts/vendor/angular-1.1.2.js'
-[4]=$input_directory'/javascripts/vendor/angular-resource-1.1.2.js'
-[5]=$input_directory'/javascripts/vendor/angular-sanitize-1.1.2.js'
-[6]=$input_directory'/javascripts/vendor/raphael.js'
-[7]=$input_directory'/javascripts/vendor/g.raphael.js'
-[8]=$input_directory'/javascripts/vendor/g.bar.js'
-[9]=$output_directory'/javascripts/app.js'
+[1]=$input_directory'/javascripts/vendor/angular-1.1.2.js'
+[2]=$input_directory'/javascripts/vendor/angular-resource-1.1.2.js'
+[3]=$input_directory'/javascripts/vendor/angular-sanitize-1.1.2.js'
+[4]=$input_directory'/javascripts/vendor/raphael.js'
+[5]=$input_directory'/javascripts/vendor/g.raphael.js'
+[6]=$input_directory'/javascripts/vendor/g.bar.js'
+[7]=$output_directory'/javascripts/app.js'
 );
 
 # Escaped version of the input directory is used to strip it from matches.
@@ -70,7 +68,7 @@ concat_scripts() {
 for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholename '*.sass-cache*' -name "*.*.*"); do
   input_format=$(echo $input_file | sed 's/^.*\.\([^\.]*\)$/\1/');
   output_file=`echo $input_file | sed 's/^.*\/\([^\/]*\)\.'$input_format'/\1/'`;
-  output_subpath=`echo $input_file | sed 's/'$escaped_input_directory'\/\(.*\)\/'$output_file'.*/\/\1/'`;
+  output_subpath=`echo $input_file | sed 's/'$escaped_input_directory'\/\(.*\)\/*'$output_file'.*/\/\1/'`;
   output_dir=$output_directory$output_subpath;
   output_path=$output_dir'/'$output_file;
 
@@ -111,6 +109,34 @@ done
 
 # Then concatenate all the scripts for easy include
 concat_scripts;
+
+# Move all the unhandled file types into the compiled directory
+# Start by compiling any files which have been modified since last time the script was run.
+#for input_file in $(find $input_directory -name '*.html' -o -name '*.jpg' -o -name '*.png' -o -name '*.gif' -o -name '*.ico' -o -name '*.js' ); do
+for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholename '*.sass-cache*' -not -name "*.haml" -not -name "*.scss" -not -name "*.coffee" -not -name "*.directory" -name "*.*"); do
+  output_file=$(echo $input_file | sed 's/'$escaped_input_directory'.*\/\([^\/]*\)$/\1/')
+  output_subdir=$(echo $input_file | sed 's/'$escaped_input_directory'\(.*\)\/[^\/]*$/\1/')
+  output_dir=$output_directory$output_subdir
+  output_path=$output_dir'/'$output_file
+
+  if [ ! -d "$output_dir" ]; then
+    mkdir -p $output_dir;
+  fi
+
+  link_file=0
+  if [ -e $output_path ]; then
+    link_file=1
+    if [ `stat -c %Y $input_file` -gt `stat -c %Y $output_path` ]; then
+      link_file=0
+    fi
+  fi
+
+  if [ $link_file -eq 0 ]; then
+    echo "Linking $input_file to $output_path"
+    ln -s $input_file $output_path
+  fi
+
+done
 
 echo "AutoBuild is now watching $input_directory for changes.";
 
