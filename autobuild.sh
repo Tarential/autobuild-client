@@ -13,10 +13,8 @@ loadjs=(
 [1]=$input_directory'/javascripts/vendor/angular-1.1.2.js'
 [2]=$input_directory'/javascripts/vendor/angular-resource-1.1.2.js'
 [3]=$input_directory'/javascripts/vendor/angular-sanitize-1.1.2.js'
-[4]=$input_directory'/javascripts/vendor/raphael.js'
-[5]=$input_directory'/javascripts/vendor/g.raphael.js'
-[6]=$input_directory'/javascripts/vendor/g.bar.js'
-[7]=$output_directory'/javascripts/app.js'
+[4]=$input_directory'/javascripts/vendor/d3.js'
+[5]=$output_directory'/javascripts/app.js'
 );
 
 # Escaped version of the input directory is used to strip it from matches.
@@ -39,7 +37,7 @@ concat_scripts() {
   for input_file in "${loadjs[@]}"; do
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} "$input_file");
-      #echo "Prioritizing addition of $input_file to js manifest.";
+      echo "Prioritizing addition of $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
@@ -48,7 +46,7 @@ concat_scripts() {
   for input_file in $(find $input_directory -name "*.js"); do
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} $input_file);
-      #echo "Adding $input_file to js manifest.";
+      echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
@@ -57,7 +55,7 @@ concat_scripts() {
   for input_file in $(find $output_directory -name "*.js"); do
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} $input_file);
-      #echo "Adding $input_file to js manifest.";
+      echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
@@ -70,7 +68,7 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
   output_file=`echo $input_file | sed 's/^.*\/\([^\/]*\)\.'$input_format'/\1/'`;
   output_subpath=`echo $input_file | sed 's/'$escaped_input_directory'\/\(.*\)\/*'$output_file'.*/\/\1/'`;
   output_dir=$output_directory$output_subpath;
-  output_path=$output_dir'/'$output_file;
+  output_path=$output_dir$output_file;
 
   if [ ! -d "$output_dir" ]; then
     mkdir -p $output_dir;
@@ -123,15 +121,7 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
     mkdir -p $output_dir;
   fi
 
-  link_file=0
-  if [ -e $output_path ]; then
-    link_file=1
-    if [ `stat -c %Y $input_file` -gt `stat -c %Y $output_path` ]; then
-      link_file=0
-    fi
-  fi
-
-  if [ $link_file -eq 0 ]; then
+  if [ ! -e $output_path ]; then
     echo "Linking $input_file to $output_path"
     ln -s $input_file $output_path
   fi
