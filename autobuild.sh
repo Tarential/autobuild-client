@@ -9,11 +9,11 @@ javascript_manifest_file='/javascripts/application.js';
 
 # Do you need a certain load order for your js files? Specify here with relative paths:
 loadjs=(
-[0]=$input_directory'/javascripts/vendor/jquery-1.9.1.js'
-[1]=$input_directory'/javascripts/vendor/angular-1.1.2.js'
-[2]=$input_directory'/javascripts/vendor/angular-resource-1.1.2.js'
-[3]=$input_directory'/javascripts/vendor/angular-sanitize-1.1.2.js'
-[4]=$input_directory'/javascripts/vendor/d3.js'
+[0]=$output_directory'/javascripts/vendor/jquery-1.9.1.js'
+[1]=$output_directory'/javascripts/vendor/angular-1.1.2.js'
+[2]=$output_directory'/javascripts/vendor/angular-resource-1.1.2.js'
+[3]=$output_directory'/javascripts/vendor/angular-sanitize-1.1.2.js'
+[4]=$output_directory'/javascripts/vendor/d3.js'
 [5]=$output_directory'/javascripts/app.js'
 );
 
@@ -38,15 +38,6 @@ concat_scripts() {
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} "$input_file");
       echo "Prioritizing addition of $input_file to js manifest.";
-      cat $input_file >> $js_mf;
-      echo "" >> $js_mf;
-    fi
-  done
-
-  for input_file in $(find $input_directory -name "*.js"); do
-    if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
-      concatenated_scripts=(${concatenated_scripts[@]} $input_file);
-      echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
@@ -105,9 +96,6 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
   fi
 done
 
-# Then concatenate all the scripts for easy include
-concat_scripts;
-
 # Move all the unhandled file types into the compiled directory
 # Start by compiling any files which have been modified since last time the script was run.
 #for input_file in $(find $input_directory -name '*.html' -o -name '*.jpg' -o -name '*.png' -o -name '*.gif' -o -name '*.ico' -o -name '*.js' ); do
@@ -125,8 +113,10 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
     echo "Linking $input_file to $output_path"
     ln -s $input_file $output_path
   fi
-
 done
+
+# Then concatenate all the scripts for easy include
+concat_scripts;
 
 echo "AutoBuild is now watching $input_directory for changes.";
 
