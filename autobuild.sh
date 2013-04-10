@@ -37,7 +37,7 @@ concat_scripts() {
   for input_file in "${loadjs[@]}"; do
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} "$input_file");
-      echo "Prioritizing addition of $input_file to js manifest.";
+      #echo "Prioritizing addition of $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
@@ -46,7 +46,7 @@ concat_scripts() {
   for input_file in $(find $output_directory -name "*.js"); do
     if !($(in_array "$input_file" "${concatenated_scripts[@]}")); then
       concatenated_scripts=(${concatenated_scripts[@]} $input_file);
-      echo "Adding $input_file to js manifest.";
+      #echo "Adding $input_file to js manifest.";
       cat $input_file >> $js_mf;
       echo "" >> $js_mf;
     fi
