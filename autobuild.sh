@@ -20,7 +20,7 @@ loadjs=(
 # Escaped version of the input directory is used to strip it from matches.
 escaped_input_directory=$(echo $input_directory | sed 's/\//\\\//g');
 
-if uname -a | grep Linux >> /dev/null; then
+if [ `uname -s` == 'Linux' ]; then
   gnuos=0
 else
   gnuos=1
@@ -75,7 +75,7 @@ for input_file in $(find $input_directory -not -wholename '*.swp*' -not -wholena
   if [ -e $output_path ]; then
     compile=1
 
-    if [ $gnuos ]; then
+    if [ $gnuos == 0 ]; then
       if [ `stat -c %Y $input_file` -gt `stat -c %Y $output_path` ]; then
         compile=0
       fi
@@ -131,7 +131,7 @@ done
 # Then concatenate all the scripts for easy include
 concat_scripts;
 
-if [ $gnuos ]; then
+if [ $gnuos == 0 ]; then
   echo "AutoBuild is now watching $input_directory for changes.";
 
   # Then monitor the directory for changes.
