@@ -20,6 +20,12 @@ loadjs=(
 # Escaped version of the input directory is used to strip it from matches.
 escaped_input_directory=$(echo $input_directory | sed 's/\//\\\//g');
 
+if uname -a | grep Linux >> /dev/null; then
+  gnuos=0
+else
+  gnuos=1
+fi
+
 # Clear the manifest files.
 ss_mf=$output_directory$stylesheet_manifest_file;
 js_mf=$output_directory$javascript_manifest_file;
@@ -54,7 +60,7 @@ concat_scripts() {
 }
 
 # Start by compiling any files which have been modified since last time the script was run.
-for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholename '*.sass-cache*' -name "*.*.*"); do
+for input_file in $(find $input_directory -not -wholename '*.swp*' -not -wholename '*.git*' -not -wholename '*.sass-cache*' -name "*.*.*"); do
   input_format=$(echo $input_file | sed 's/^.*\.\([^\.]*\)$/\1/');
   output_file=`echo $input_file | sed 's/^.*\/\([^\/]*\)\.'$input_format'/\1/'`;
   output_subpath=`echo $input_file | sed 's/'$escaped_input_directory'\/\(.*\)\/*'$output_file'.*/\/\1/'`;
@@ -68,8 +74,15 @@ for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholena
   compile=0
   if [ -e $output_path ]; then
     compile=1
-    if [ `stat -c %Y $input_file` -gt `stat -c %Y $output_path` ]; then
-      compile=0
+
+    if [ $gnuos ]; then
+      if [ `stat -c %Y $input_file` -gt `stat -c %Y $output_path` ]; then
+        compile=0
+      fi
+    else
+      if [ `stat -f "%m" $input_file` -gt `stat -f "%m" $output_path` ]; then
+        compile=0
+      fi
     fi
   fi
 
@@ -99,7 +112,7 @@ done
 # Move all the unhandled file types into the compiled directory
 # Start by compiling any files which have been modified since last time the script was run.
 #for input_file in $(find $input_directory -name '*.html' -o -name '*.jpg' -o -name '*.png' -o -name '*.gif' -o -name '*.ico' -o -name '*.js' ); do
-for input_file in $(find $input_directory -not -wholename '*.git*' -not -wholename '*.sass-cache*' -not -name "*.haml" -not -name "*.scss" -not -name "*.coffee" -not -name "*.directory" -name "*.*"); do
+for input_file in $(find $input_directory -not -wholename '*.swp*' -not -wholename '*.git*' -not -wholename '*.sass-cache*' -not -name "*.haml" -not -name "*.scss" -not -name "*.coffee" -not -name "*.directory" -name "*.*"); do
   output_file=$(echo $input_file | sed 's/'$escaped_input_directory'.*\/\([^\/]*\)$/\1/')
   output_subdir=$(echo $input_file | sed 's/'$escaped_input_directory'\(.*\)\/[^\/]*$/\1/')
   output_dir=$output_directory$output_subdir
@@ -118,30 +131,35 @@ done
 # Then concatenate all the scripts for easy include
 concat_scripts;
 
-echo "AutoBuild is now watching $input_directory for changes.";
+if [ $gnuos ]; then
+  echo "AutoBuild is now watching $input_directory for changes.";
 
-# Then monitor the directory for changes.
-while inp=$(inotifywait -qre MODIFY $input_directory); do
+  # Then monitor the directory for changes.
+  while inp=$(inotifywait -qre MODIFY $input_directory); do
 
-  file_format=$(echo $inp | sed 's/^.*\.\([^\.]*\)$/\1/');
-  input_file=$(echo $inp | sed 's/\s.*\s//');
-  output_subdir=$(echo $inp | sed 's/'$escaped_input_directory'\(.*\)\/\s.*/\1/');
-  output_file=$(echo $inp | sed 's/\(.*\)\s.*\s\(.*\)\.'$file_format'/\2/');
-  output_path=$(echo $output_directory""$output_subdir"/"$output_file);
+    file_format=$(echo $inp | sed 's/^.*\.\([^\.]*\)$/\1/');
+    input_file=$(echo $inp | sed 's/\s.*\s//');
+    output_subdir=$(echo $inp | sed 's/'$escaped_input_directory'\(.*\)\/\s.*/\1/');
+    output_file=$(echo $inp | sed 's/\(.*\)\s.*\s\(.*\)\.'$file_format'/\2/');
+    output_path=$(echo $output_directory""$output_subdir"/"$output_file);
 
-  if [ $file_format = "haml" ]; then
-    echo "Hamling "$input_file" to "$output_path;
-    haml $input_file $output_path;
-  fi
+    if [ $file_format = "haml" ]; then
+      echo "Hamling "$input_file" to "$output_path;
+      haml $input_file $output_path;
+    fi
 
-  if [ $file_format = "coffee" ]; then
-    echo "Coffing "$input_file" to "$output_path;
-    coffee --compile -p $input_file > $output_path;
-    concat_scripts;
-  fi
+    if [ $file_format = "coffee" ]; then
+      echo "Coffing "$input_file" to "$output_path;
+      coffee --compile -p $input_file > $output_path;
+      concat_scripts;
+    fi
 
-  if [ $file_format = "scss" ]; then
-    echo "Sassing "$input_file" to "$output_path;
-    sass $input_file $output_path;
-  fi
-done
+    if [ $file_format = "scss" ]; then
+      echo "Sassing "$input_file" to "$output_path;
+      sass $input_file $output_path;
+    fi
+  done
+else
+  echo "Compilation complete."
+fi
+
